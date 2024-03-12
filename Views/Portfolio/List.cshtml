@@ -1,0 +1,267 @@
+﻿@model ClientPortfolioViewModel
+
+<h1>@ViewData["Title"]</h1>
+
+
+<h2>@Model.FirstName @Model.LastName</h2>
+
+<div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exampleModalLabel">Управление свободными средствами</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <input id="identity" type="hidden" />
+                <div id="stockNameModal"></div>
+                <div id="stockCountModal"></div>
+                <div id="stockPriceModal"></div>
+                <div id="cashModal"></div>
+                <input id="inputModal" class="form-control mb-2" type="text" aria-label="default input example">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                <button id="firstBtnModal" type="button" class="btn btn-primary"></button>
+                <button id="secondBtntModal" type="button" class="btn btn-primary"></button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="save-success" class="alert alert-success alert-dismissible collapse" role="alert">
+    <div id="alert-text-success"></div>
+    <button type="button" class="btn-close" aria-label="Close"></button>
+</div>
+
+<div id="save-danger" class="alert alert-danger alert-dismissible collapse" role="alert">
+    <div id="alert-text-danger"></div>
+    <button type="button" class="btn-close" aria-label="Close"></button>
+</div>
+
+<table class="table table-striped table-hover">
+    <thead>
+        <tr>
+            <th>Id</th>
+            <th>Название</th>
+            <th>Цена акции</th>
+            <th>Количество акций</th>
+            <th>Общая сумма</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model.PortfolioViewModel.Stocks)
+        {
+            <tr data-id="@item.Id">
+                <td id="id">@item.Id</td>
+                <td id="name">@item.Name</td>
+                <td id="price">@item.Price</td>
+                <td id="count">@item.Count</td>
+                <td id="totalCount">@item.TotalCount</td>
+
+                <td>
+                    <button id="btnTrade-@item.Id" type="button" class="btn btn-outline-success btn-sm" data-bs-toggle="modal"
+                            data-bs-target="#exampleModal">
+                        Купить/Продать
+                    </button>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-2 text-end">Свободные средства</div>
+        <div id="cash" class="col-2 text-center">@Model.PortfolioViewModel.Cash</div>
+        <div class="col-2">
+            <button type="button" class="btn btn-outline-success btn-sm btn-withrawal" data-bs-toggle="modal"
+                    data-bs-target="#exampleModal">
+                Вывести/Пополнить
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+
+    $(document).ready(function () {
+        var cash = @Model.PortfolioViewModel.Cash;
+        var portfolioId = @Model.Id
+
+        $('.btn-close').click(function () {
+            $('.alert').hide();
+        })
+
+        $(".btn-withrawal").on("click", function () {
+            var modal = $("#exampleModal");
+            modal.find("#stockNameModal").text("");
+            modal.find("#stockCountModal").text("");
+            modal.find("#stockPriceModal").text("");
+            modal.find("#cashModal").text("Свободные средства " + cash).removeClass("col").addClass("col-12");
+            $("#firstBtnModal").removeClass("btn-buy-modal").addClass("btn-withraw-modal").text("Вывести");
+            $("#secondBtntModal").removeClass("btn-sell-modal").addClass("btn-deposit-modal").text("Пополнить");
+        });
+
+        $("table tbody tr td button").each(function (index, element) {
+            $(element).on("click", function () {
+                var tr = $(this).closest("tr");
+                var id = tr.find("#id").text();
+
+                var localStockName = tr.find("#name").text();
+                var localStockCount = tr.find("#count").text();
+                var localPriceModal = tr.find("#price").text();
+
+                var modal = $("#exampleModal");
+                modal.find("#identity").val(id);
+                modal.find("#stockNameModal").text(localStockName);
+                modal.find("#stockCountModal").text("Количество акций " + localStockCount);
+                modal.find("#stockPriceModal").text("Цена акции " + localPriceModal);
+                modal.find("#cashModal").text("Свободные средства " + cash);
+                $("#firstBtnModal").removeClass("btn-withraw-modal").addClass("btn-buy-modal").text("Купить");
+                $("#secondBtntModal").removeClass("btn-deposit-modal").addClass("btn-sell-modal").text("Продать");
+            });
+        });
+
+        $(".modal-footer").on("click", ".btn-withraw-modal", function () {
+            var modal = $("#exampleModal");
+            var id = @Model.Id;
+            var amount = modal.find("#inputModal").val();
+
+            $.ajax({
+                url: '/Portfolio/Withraw',
+                method: 'post',
+                dataType: 'json',
+                data: {
+                    id: id,
+                    amount: amount
+                },
+                statusCode: {
+                    200: function (data) {
+                        $("#cash").text(data.cash);
+                        cash = data.cash;
+                        $("#alert-text-success").text("Вы успешно вывели " + data.cashChange);
+                        $('.alert-success').show();
+                        modal.modal('hide');
+                    },
+                    422: function (data) {
+                        $("#alert-text-danger").text("Недостаточно средств");
+                        $('.alert-danger').show();
+                        modal.modal('hide');
+                    }
+                },
+                error: function (responseError) {
+                    //console.log(responseError);
+                }
+            });
+        });
+
+        $(".modal-footer").on("click", ".btn-deposit-modal", function () {
+            var modal = $("#exampleModal");
+            var id = @Model.Id;
+            var amount = modal.find("#inputModal").val();
+
+            $.ajax({
+                url: '/Portfolio/Deposit',
+                method: 'post',
+                dataType: 'json',
+                data: {
+                    id: id,
+                    amount: amount
+                },
+                statusCode: {
+                    200: function (data) {
+                        $("#cash").text(data.cash);
+                        cash = data.cash;
+                        $("#alert-text-success").text("Вы успешно пополнили счет на " + data.cashChange);
+                        $('.alert-success').show();
+                        modal.modal('hide');
+                    }
+                },
+                error: function (responseError) {
+                    //console.log(responseError);
+                }
+            });
+        });
+
+        $(".modal-footer").on("click", ".btn-buy-modal", function () {
+            var modal = $("#exampleModal");
+            var id = portfolioId;
+            var stockId = modal.find("#identity").val();
+            var count = modal.find("#inputModal").val();
+
+            $.ajax({
+                url: '/Portfolio/Buy',
+                method: 'post',
+                dataType: 'json',
+                data: {
+                    id: id,
+                    stockId: stockId,
+                    count: count
+                },
+                statusCode: {
+                    200: function (data) {
+                        console.log(data);
+                        tr = $("tr[data-id='" + data.stockId + "']");
+                        tr.find("#count").text(data.stockCount);
+                        tr.find("#totalCount").text(data.stockTotalCount);
+                        $("#cash").text(data.cash);
+                        cash = data.cash;
+                        $("#alert-text-success").text("Вы успешно купили: " + data.stockChange + " " + data.stockName);
+                        $('.alert-success').show();
+                        modal.modal('hide');
+                        console.log("test1")
+                    },
+                    422: function (data) {
+                        console.log(data);
+                        $("#alert-text-danger").text("Недостаточно средств для покупки " + data.responseJson.stockChange + " " + data.responseJson.stockName);
+                        $('.alert-danger').show();
+                        modal.modal('hide');
+                    }
+                },
+                error: function (responseError) {
+                    // console.log(responseError);
+                }
+            });
+        });
+
+        $(".modal-footer").on("click", ".btn-sell-modal", function () {
+            var modal = $("#exampleModal");
+            var id = portfolioId;
+            var stockId = modal.find("#identity").val();
+            var count = modal.find("#inputModal").val();
+
+            $.ajax({
+                url: '/Portfolio/Sell',
+                method: 'post',
+                dataType: 'json',
+                data: {
+                    id: id,
+                    stockId: stockId,
+                    count: count
+                },
+                statusCode: {
+                    200: function (data) {
+                        tr = $("tr[data-id='" + data.stockId + "']");
+                        tr.find("#count").text(data.stockCount);
+                        tr.find("#totalCount").text(data.stockTotalCount);
+                        $("#cash").text(data.cash);
+                        cash = data.cash;
+                        $("#alert-text-success").text("Вы успешно продали: " + data.stockChange + " " + data.stockName);
+                        $('.alert-success').show();
+                        modal.modal('hide');
+                    },
+                    422: function (data) {
+                        $("#alert-text-danger").text("Недостаточно акций для продажи " + data.responseJson.stockChange + " " + data.responseJson.stockName);
+                        $('.alert-danger').show();
+                        modal.modal('hide');
+                    }
+                },
+                error: function (responseError) {
+
+                }
+            });
+        });
+    });
+</script>

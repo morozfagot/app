@@ -1,0 +1,120 @@
+﻿@model IEnumerable<ClientViewModel>
+
+<h1>@ViewData["Title"]</h1>
+
+
+<!-- Modal -->
+<div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exampleModalLabel">Редактирование клиента</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <input id="identity" type="hidden" />
+                <input id="first-name" class="form-control mb-2" type="text" aria-label="default input example">
+                <input id="last-name" class="form-control mb-2" type="text" aria-label="default input example">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                <button id="save" type="button" class="btn btn-primary">Сохранить изменения</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="save-success" class="alert alert-success alert-dismissible collapse" role="alert">
+    <div id="alert-text"></div>
+    <button type="button" class="btn-close" aria-label="Close"></button>
+</div>
+
+<table class="table table-striped table-hover">
+    <thead>
+        <tr>
+            <th scope="col">Id</th>
+            <th scope="col">Имя</th>
+            <th scope="col">Фамилия</th>
+            <th></th>
+            <th></th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+                <tr data-id="@item.Id">
+                    <th id="id" scope="row">@item.Id</th>
+                    <td id="fn">@item.FirstName</td>
+                    <td id="ln">@item.LastName</td>
+                    <td></td>
+                    <td>
+                        <button type="button" class="btn btn-outline-success btn-sm btn-edit" data-bs-toggle="modal"
+                                data-bs-target="#exampleModal">
+                            Редактировать
+                        </button>
+                    </td>
+                    <td>
+                        <a href="/Portfolio/List/@item.Id" class="btn btn-outline-success btn-sm" tabindex="-1" role="button" aria-disabled="true">Портфель</a>
+                    </td>
+                </tr>
+        }
+    </tbody>
+</table>
+
+<script>
+    var controllerName = "@(this.ViewContext.RouteData.Values["controller"].ToString().ToLower())";
+
+    $(document).ready(function () {
+        $('.btn-close').click(function () {
+            $('.alert').hide();
+        })
+
+        $(".btn-edit").on("click", function () {
+            var tr = $(this).closest("tr");
+            var id = tr.find("#id").text();
+
+            var firstName = tr.find("#fn").text();
+            var lastName = tr.find("#ln").text();
+
+            var modal = $("#exampleModal");
+            modal.find("#identity").val(id);
+            modal.find("#first-name").val(firstName);
+            modal.find("#last-name").val(lastName);
+        });
+
+        $("#save").on("click", function () {
+
+            var modal = $("#exampleModal");
+            var id = modal.find("#identity").val();
+            var firstName = modal.find("#first-name").val();
+            var lastName = modal.find("#last-name").val();
+
+            $.ajax({
+                url: '/' + controllerName + '/Edit',
+                method: 'post',
+                dataType: 'json',
+                data: {
+                    id: id,
+                    firstName: firstName,
+                    lastName: lastName
+                },
+                statusCode: {
+                    200: function (data) {
+                        var tr = $("tr[data-id='" + id + "']");
+                        tr.find("#fn").text(data.firstName);
+                        tr.find("#ln").text(data.lastName);
+                        $("#alert-text").text(" Вы успешно изменили: " + data.id + " " + data.firstName + " " + data.lastName);
+                        $('.alert').show();
+                        modal.modal('hide');
+                    }
+                },
+                error: function (responseError) {
+                    console.log(responseError);
+                }
+            });
+        });
+    });
+
+
+</script>
