@@ -9,18 +9,28 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Models\ClientModels\ClientViewModels\ClientErrorViewModels\**" />
     <Compile Remove="Views\Новая папка1\**" />
+    <Content Remove="Models\ClientModels\ClientViewModels\ClientErrorViewModels\**" />
     <Content Remove="Views\Новая папка1\**" />
+    <EmbeddedResource Remove="Models\ClientModels\ClientViewModels\ClientErrorViewModels\**" />
     <EmbeddedResource Remove="Views\Новая папка1\**" />
+    <None Remove="Models\ClientModels\ClientViewModels\ClientErrorViewModels\**" />
     <None Remove="Views\Новая папка1\**" />
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.3" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.3">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.3">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.19.5" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Models\ClientModels\ClientViewModels\ClientErrorViewModels\" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.2" />
   </ItemGroup>
 
   <ItemGroup>
@@ -64,6 +74,10 @@
     <None Include="wwwroot\lib\jquery\dist\jquery.js" />
     <None Include="wwwroot\lib\jquery\dist\jquery.min.js" />
     <None Include="wwwroot\lib\jquery\dist\jquery.min.map" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Models\ClientModels\ClientViewModels\ClientErrorViewModel\" />
   </ItemGroup>
 
 </Project>

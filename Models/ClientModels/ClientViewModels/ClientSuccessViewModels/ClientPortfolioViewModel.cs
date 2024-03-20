@@ -5,5 +5,5 @@ public class ClientPortfolioViewModel
     public int Id { get; set; }
     public string FirstName { get; set; } = string.Empty;
     public string LastName { get; set; } = string.Empty;
-    public PortfolioViewModel PortfolioViewModel { get; set; } = null;
+    public PortfolioViewModel Portfolio { get; set; } = null;
 } 

@@ -1,4 +1,4 @@
-﻿namespace WebApplication10.Models.PortfolioModels.StockModels.StockViewModels
+﻿namespace WebApplication10.Models.StockModels.StockViewModels
 {
     public class StockViewModel
     {

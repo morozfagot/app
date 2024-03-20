@@ -51,7 +51,7 @@
         </tr>
     </thead>
     <tbody>
-        @foreach (var item in Model.PortfolioViewModel.Stocks)
+        @foreach (var item in Model.Portfolio.Stocks)
         {
             <tr data-id="@item.Id">
                 <td id="id">@item.Id</td>
@@ -74,7 +74,7 @@
 <div class="container-fluid">
     <div class="row">
         <div class="col-2 text-end">Свободные средства</div>
-        <div id="cash" class="col-2 text-center">@Model.PortfolioViewModel.Cash</div>
+        <div id="cash" class="col-2 text-center">@Model.Portfolio.Cash</div>
         <div class="col-2">
             <button type="button" class="btn btn-outline-success btn-sm btn-withrawal" data-bs-toggle="modal"
                     data-bs-target="#exampleModal">
@@ -87,7 +87,7 @@
 <script>
 
     $(document).ready(function () {
-        var cash = @Model.PortfolioViewModel.Cash;
+        var cash = @Model.Portfolio.Cash;
         var portfolioId = @Model.Id
 
         $('.btn-close-success').click(function () {

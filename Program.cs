@@ -1,4 +1,5 @@
-using WebApplication10.Models.PortfolioModels.StockModel;
+using Microsoft.EntityFrameworkCore;
+using WebApplication10.Repositories;
 
 namespace WebApplication10
 {
@@ -7,10 +8,13 @@ namespace WebApplication10
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
-
-            // Add services to the container.
+            var configuration = builder.Configuration;
             builder.Services.AddControllersWithViews();
-            builder.Services.AddSingleton<SourceDB>();
+            builder.Services.AddDbContext<TradingDbContext>(options => {
+                options.UseNpgsql(configuration.GetConnectionString(nameof(TradingDbContext)));
+            });
+            builder.Services.AddTransient<ClientRepository>();
+            builder.Services.AddTransient<PortfolioRepository>();
 
             var app = builder.Build();
 
@@ -33,8 +37,7 @@ namespace WebApplication10
                 name: "default",
                 pattern: "{controller=Home}/{action=Index}/{id?}");
 
-            app.Run();
-            
+            app.Run(); 
         }
     }
 }

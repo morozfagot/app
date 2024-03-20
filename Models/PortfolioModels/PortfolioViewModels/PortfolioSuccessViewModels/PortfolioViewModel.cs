@@ -1,4 +1,4 @@
-﻿using WebApplication10.Models.PortfolioModels.StockModels.StockViewModels;
+﻿using WebApplication10.Models.StockModels.StockViewModels;
 
 namespace WebApplication10.Models.PortfolioModels.PortfolioViewModels.PortfolioSuccessViewModel
 {
@@ -6,7 +6,7 @@ namespace WebApplication10.Models.PortfolioModels.PortfolioViewModels.PortfolioS
     {
         public int Id { get; set; }
         public int ClientId { get; set; }
-        public List<StockViewModel> Stocks { get; set; } = new List<StockViewModel>();
+        public List<StockViewModel>? Stocks { get; set; }
         public int Cash { get; set; }
     }
 }

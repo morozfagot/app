@@ -1,57 +1,95 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using WebApplication10.Models.ClientModels;
-using WebApplication10.Models.PortfolioModels;
+using WebApplication10.Models.StockModels.StockViewModels;
 using WebApplication10.Models.PortfolioModels.PortfolioInputModels;
 using WebApplication10.Models.PortfolioModels.PortfolioViewModels.PortfolioErrorViewModels;
 using WebApplication10.Models.PortfolioModels.PortfolioViewModels.PortfolioSuccessViewModel;
+using WebApplication10.Repositories;
 
 namespace WebApplication10.Controllers
 {
     public class PortfolioController : Controller
     {
-        List<ClientDbModel> clientsDbModel;
-        List<PortfolioDbModel> portfoliosDbModel;
-        public PortfolioController(SourceDB sourceDB)
+        private readonly ClientRepository _clientRepository;
+        private readonly PortfolioRepository _portfolioRepository;
+        public PortfolioController(ClientRepository clientRepository, PortfolioRepository portfolioRepository)
         {
-            clientsDbModel = sourceDB.Clients;
-            portfoliosDbModel = sourceDB.Portfolios;
+            var array = new int[3] { 1,2,3 };
+            _clientRepository = clientRepository;
+            _portfolioRepository = portfolioRepository;
         }
 
         [HttpGet]
-        public IActionResult List(int id)
+        public async Task<IActionResult> List(int id)
         {
             ViewData["Title"] = "Акции";
-            ClientPortfolioViewModel clientPortfolioViewModel = (ClientPortfolioViewModel)clientsDbModel.Single(x => x.Id == id);
-            return View(clientPortfolioViewModel);
+            var client = await _clientRepository.GetClientAsync(c => c.Id == id);
+            var model = new ClientPortfolioViewModel
+            {
+                Id = id,
+                FirstName = client.FirstName,
+                LastName = client.LastName,
+                Portfolio = new PortfolioViewModel
+                {
+                    Id = client.Portfolio.Id,
+                    Cash = client.Portfolio.Cash,
+                    ClientId = client.Id,
+                    Stocks = client.Portfolio.PortfolioStocks
+                    .Select(ps => new StockViewModel {
+                        Id = ps.StockId,
+                        Name = ps.Stock.Name,
+                        Count = ps.Count,
+                        Price = ps.Stock.Price,
+                        TotalCount = ps.TotalPrice
+                    })
+                    .ToList()
+                }
+            };
+            return View(model);
         }
         [HttpPost]
-        public IActionResult Buy(PortfolioTradeInputModel input)
+        public async Task<IActionResult> Buy(PortfolioTradeInputModel input)
         {
-            var portfolio = portfoliosDbModel.Single(x => x.Id == input.Id);
-            var stock = portfolio.Stocks.Single(x => x.Id == input.StockId);
-            if (portfolio.Cash >= input.Count * stock.Price)
+            var portfolio = await _portfolioRepository.GetPortfolioAsync(x => x.Id == input.Id);
+            var portfolioStock = portfolio.PortfolioStocks.Single(ps => ps.StockId == input.StockId);
+            if (portfolio.Cash >= input.Count * portfolioStock.Stock.Price)
             {
-                stock.Count += input.Count;
-                stock.TotalCount = stock.Count * stock.Price;
-                portfolio.Cash -= input.Count * stock.Price;
-                var model = new PortfolioTradeViewModel
+                portfolioStock.Count += input.Count;
+                portfolioStock.TotalPrice = portfolioStock.Count * portfolioStock.Stock.Price;
+                portfolio.Cash -= input.Count * portfolioStock.Stock.Price;
+                if (_portfolioRepository.UpdatePortfolio(portfolio))
                 {
-                    PortfolioId = portfolio.Id,
-                    StockId = stock.Id,
-                    StockName = stock.Name,
-                    StockCount = stock.Count,
-                    StockTotalCount = stock.TotalCount,
-                    StockChange = input.Count,
-                    Cash = portfolio.Cash
-                };
-                return Ok(model);
+                    await _portfolioRepository.SaveAsync();
+                    var model = new PortfolioTradeViewModel
+                    {
+                        PortfolioId = portfolio.Id,
+                        StockId = portfolioStock.Stock.Id,
+                        StockName = portfolioStock.Stock.Name,
+                        StockCount = portfolioStock.Count,
+                        StockTotalCount = portfolioStock.TotalPrice,
+                        StockChange = input.Count,
+                        Cash = portfolio.Cash
+                    };
+                    return Ok(model);
+                }
+                else
+                {
+                    var error = new PortfolioErrorTradeViewModel
+                    {
+                        StockId = portfolioStock.Stock.Id,
+                        StockName = portfolioStock.Stock.Name,
+                        PortfolioId = portfolio.Id,
+                        StockChange = input.Count
+                    };
+                    return UnprocessableEntity(error);
+                }
+               
             }
             else
             {
                 var error = new PortfolioErrorTradeViewModel
                 {
-                    StockId = stock.Id,
-                    StockName = stock.Name,
+                    StockId = portfolioStock.Stock.Id,
+                    StockName = portfolioStock.Stock.Name,
                     PortfolioId = portfolio.Id,
                     StockChange = input.Count
                 };
@@ -59,33 +97,50 @@ namespace WebApplication10.Controllers
             }
         }
         [HttpPost]
-        public IActionResult Sell(PortfolioTradeInputModel input)
+        public async Task<IActionResult> Sell(PortfolioTradeInputModel input)
         {
-            var portfolio = portfoliosDbModel.Single(x => x.Id == input.Id);
-            var stock = portfolio.Stocks.Single(x => x.Id == input.StockId);
-            if (stock.Count >= input.Count)
+            var portfolio = await _portfolioRepository.GetPortfolioAsync(x => x.Id == input.Id);
+            var portfolioStock = portfolio.PortfolioStocks.Single(ps => ps.StockId == input.StockId);
+
+            if (portfolioStock.Count >= input.Count)
             {
-                stock.Count -= input.Count;
-                stock.TotalCount = stock.Count * stock.Price;
-                portfolio.Cash += input.Count * stock.Price;
-                var model = new PortfolioTradeViewModel
+                portfolioStock.Count -= input.Count;
+                portfolioStock.TotalPrice = portfolioStock.Count * portfolioStock.Stock.Price;
+                portfolio.Cash += input.Count * portfolioStock.Stock.Price;
+                if (_portfolioRepository.UpdatePortfolio(portfolio))
                 {
-                    PortfolioId = portfolio.Id,
-                    StockId = stock.Id,
-                    StockName = stock.Name,
-                    StockCount = stock.Count,
-                    StockTotalCount = stock.TotalCount,
-                    StockChange = input.Count,
-                    Cash = portfolio.Cash
-                };
-                return Ok(model);
+                    await _portfolioRepository.SaveAsync();
+                    var model = new PortfolioTradeViewModel
+                    {
+                        PortfolioId = portfolio.Id,
+                        StockId = portfolioStock.Stock.Id,
+                        StockName = portfolioStock.Stock.Name,
+                        StockCount = portfolioStock.Count,
+                        StockTotalCount = portfolioStock.TotalPrice,
+                        StockChange = input.Count,
+                        Cash = portfolio.Cash
+                    };
+                    return Ok(model);
+                }
+                else
+                {
+                    var error = new PortfolioErrorTradeViewModel
+                    {
+                        StockId = portfolioStock.Stock.Id,
+                        StockName = portfolioStock.Stock.Name,
+                        PortfolioId = portfolio.Id,
+                        StockChange = input.Count
+                    };
+                    return UnprocessableEntity(error);
+                }
+
             }
             else
             {
                 var error = new PortfolioErrorTradeViewModel
                 {
-                    StockId =stock.Id,
-                    StockName = stock.Name,
+                    StockId = portfolioStock.Stock.Id,
+                    StockName = portfolioStock.Stock.Name,
                     PortfolioId = portfolio.Id,
                     StockChange = input.Count
                 };
@@ -94,12 +149,39 @@ namespace WebApplication10.Controllers
         }
 
         [HttpPost]
-        public IActionResult Withraw(PortfolioWithrawalInputModel input)
+        public async Task<IActionResult> Withraw(PortfolioWithrawalInputModel input)
         {
-            var portfolio = portfoliosDbModel.Single(x => x.Id == input.Id);
+            var portfolio = await _portfolioRepository.GetPortfolioAsync(p => p.Id == input.Id);
             if (portfolio.Cash >= input.Amount)
             {
                 portfolio.Cash -= input.Amount;
+                if(_portfolioRepository.UpdatePortfolio(portfolio))
+                {
+                    await _portfolioRepository.SaveAsync();
+                    var model = new PortfolioWithrawalViewModel
+                    {
+                        Id = portfolio.Id,
+                        Cash = portfolio.Cash,
+                        CashChange = input.Amount
+                    };
+                    return Ok(model);
+                }else
+                {
+                    return UnprocessableEntity();
+                }
+            }
+            else {
+                return UnprocessableEntity();
+            }
+        }
+        [HttpPost]
+        public async Task<IActionResult> Deposit(PortfolioWithrawalInputModel input)
+        {
+            var portfolio = await _portfolioRepository.GetPortfolioAsync(p => p.Id == input.Id);
+            portfolio.Cash += input.Amount;
+            if(_portfolioRepository.UpdatePortfolio(portfolio))
+            {
+                await _portfolioRepository.SaveAsync();
                 var model = new PortfolioWithrawalViewModel
                 {
                     Id = portfolio.Id,
@@ -108,22 +190,10 @@ namespace WebApplication10.Controllers
                 };
                 return Ok(model);
             }
-            else {
+            else
+            {
                 return UnprocessableEntity();
             }
-        }
-        [HttpPost]
-        public IActionResult Deposit(PortfolioWithrawalInputModel input)
-        {
-            var portfolio = portfoliosDbModel.Single(x => x.Id == input.Id);
-            portfolio.Cash += input.Amount;
-            var model = new PortfolioWithrawalViewModel
-            {
-                Id = portfolio.Id,
-                Cash = portfolio.Cash,
-                CashChange = input.Amount
-            };
-            return Ok(model);
         }
     }
 }
